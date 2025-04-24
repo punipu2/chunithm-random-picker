@@ -3,111 +3,263 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CHUNITHM Random Picker</title>
+  <title>CHUNITHM 課題曲メーカー</title>
   <style>
-    body { font-family: sans-serif; padding: 1.5em; background: #f2f2f2; }
-    h1 { font-size: 1.5em; }
-    input, select, button { padding: 0.5em; margin: 0.5em 0; font-size: 1em; }
-    textarea { width: 100%; height: 300px; margin-top: 1em; white-space: pre; font-family: monospace; }
-    .container { background: white; padding: 1.5em; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); max-width: 600px; margin: auto; }
-    .note { font-size: 0.9em; color: #555; }
+    body { font-family: "Helvetica Neue", sans-serif; padding: 1.5em; background: #f2f2f2; }
+    h1 { font-size: 1.8em; margin-bottom: 0.5em; }
+    label { display: block; margin: 0.2em 0 0.2em; }
+    input, select, button { padding: 0.6em; font-size: 1em; border: 1px solid #ccc; border-radius: 5px; }
+    input[type="checkbox"] { width: auto; margin-right: 0.2em; }
+    button { background-color: #3d3d3d; color: white; cursor: pointer; margin-top: 0.8em; }
+    button:hover { background-color: #555555; }
+    .container { background: white; padding: 2em; border-radius: 12px; box-shadow: 0 0 15px rgba(0,0,0,0.1); max-width: 650px; margin: auto; }
+    .section { margin-bottom: 1.5em; }
+    .note { font-size: 0.9em; color: #555; margin: 0.5em; }
+    .results { margin-top: 1.5em; background: #f0f0f0; padding: 1em; border-radius: 10px; font-family: monospace; color: #333; display: none; }
+    .output-header { font-weight: bold; font-size: 1.1em; color: #006f8f; }
+    .song-line { display: grid; grid-template-columns: 1fr 3ch 3ch 7ch; gap: 0.5em; padding: 0.3em 0; align-items: center; white-space: nowrap; overflow: hidden; }
+    .song-title { font-weight: bold; overflow: hidden; text-overflow: ellipsis; }
+    .song-diff, .song-score { text-align: right; }
+    .song-level { text-align: left; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>CHUNITHM Random Picker</h1>
-    <label>Token:<br><input type="password" id="token" placeholder="アクセストークン"></label><br>
-    <div class="note">
-      トークンは <a href="https://developer.chunirec.net/manage/#urec-api" target="_blank">こちら</a> からログインして発行できます。
+    <h1>CHUNITHM 課題曲メーカー</h1>
+
+    <div class="section">
+    <label>アクセストークン:</label>
+      <input type="password" id="token">
+      <div class="note">
+        アクセストークンは
+        <a href="https://developer.chunirec.net/manage/#urec-api" target="_blank">こちら</a>
+        から発行できます。
+      </div>
     </div>
-    <br>
-    <label>Region:
+
+    <div class="section">
+      <label>地域:</label>
       <select id="region">
         <option value="jp2">jp2</option>
         <option value="jp">jp</option>
       </select>
-    </label><br>
-    <div class="note">CHUNITHM NEW以降のバージョンでは「jp2」を選択してください。</div><br>
-    <label>曲数:<br><input type="number" id="count" value="5" min="1"></label><br>
-    <label><input type="checkbox" id="pick-aj" checked> 未AJ譜面から選ぶ</label><br>
-    <label><input type="checkbox" id="pick-ajc" checked> 未AJC譜面から選ぶ</label><br>
-    <button onclick="runPicker()">🎲 ランダムピック実行</button>
-    <textarea id="output" readonly placeholder="ここに結果が表示されます"></textarea>
-    <div class="note">
-        APIにはリクエスト制限があります。何度も連打しすぎないようにご注意ください。
+      <div class="note">
+        CHUNITHM NEW以降のバージョンでは「jp2」を選択してください。
       </div>
     </div>
 
+    <div class="section">
+      <label>曲数:</label>
+      <select id="count"></select>
+    </div>
+
+    <div class="section">
+      <label>レベル:</label>
+      <div id="level-container" style="margin-top:0.5em;"></div>
+    </div>
+
+    <div class="section">
+      <label>難易度:</label>
+      <label style="display:inline-block;margin-right:0.5em;"><input type="checkbox" id="filter-BAS"> BAS</label>
+      <label style="display:inline-block;margin-right:0.5em;"><input type="checkbox" id="filter-ADV"> ADV</label>
+      <label style="display:inline-block;margin-right:0.5em;"><input type="checkbox" id="filter-EXP"> EXP</label>
+      <label style="display:inline-block;margin-right:0.5em;"><input type="checkbox" id="filter-MAS" checked> MAS</label>
+      <label style="display:inline-block;margin-right:0.5em;"><input type="checkbox" id="filter-ULT" checked> ULT</label>
+    </div>
+
+    <div class="section">
+      <label>オプション:</label>
+      <label style="display:inline-block;margin-right:0.5em;"><input type="checkbox" id="pick-aj"> 未AJ譜面のみ</label>
+      <label style="display:inline-block;margin-right:0.5em;"><input type="checkbox" id="pick-ajc"> 未AJC譜面のみ</label>
+    </div>
+
+    <button onclick="runPicker()">🎲 ランダムピック実行</button>
+
+    <div class="note">
+        APIにはリクエスト制限があります。連続での実行はお控えください。
+    </div>
+
+    <div class="results" id="output"></div>
+  </div>
+
   <script>
+    const LEVELS = [
+      "1","2","3","4","5","6","7","7+","8","8+","9","9+",
+      "10","10+","11","11+","12","12+","13","13+","14","14+","15","15+"
+    ];
+
+    window.addEventListener('DOMContentLoaded', () => {
+        const countSel = document.getElementById('count');
+      for (let i = 1; i <= 20; i++) {
+        const o = document.createElement('option');
+        o.value = o.textContent = i;
+        countSel.appendChild(o);
+      }
+      countSel.value = localStorage.getItem('chunirec_count') || '5';
+
+      // レベルセレクト (n ～ m)
+      const lc = document.getElementById('level-container');
+      const minSel = document.createElement('select');
+      const maxSel = document.createElement('select');
+      minSel.id = 'level-min'; maxSel.id = 'level-max';
+      LEVELS.forEach(lv => {
+        [minSel, maxSel].forEach(s => {
+          const o = document.createElement('option');
+          o.value = o.textContent = lv;
+          s.appendChild(o);
+        });
+      });
+      minSel.value = formatLevel(localStorage.getItem('chunirec_level_min')) || LEVELS[0];
+      maxSel.value = formatLevel(localStorage.getItem('chunirec_level_max')) || LEVELS.at(-1);
+      minSel.addEventListener('change', () => {
+        if (LEVELS.indexOf(minSel.value) > LEVELS.indexOf(maxSel.value)) {
+          maxSel.value = minSel.value;
+        }
+      });
+      maxSel.addEventListener('change', () => {
+        if (LEVELS.indexOf(maxSel.value) < LEVELS.indexOf(minSel.value)) {
+          minSel.value = maxSel.value;
+        }
+      });
+      lc.append(minSel, document.createTextNode(' ～ '), maxSel);
+      const restore = (id, key, isChecked=false) => {
+        const v = localStorage.getItem(key);
+        if (v !== null) {
+          const el = document.getElementById(id);
+          if (isChecked) el.checked = (v === 'true');
+          else el.value = v;
+        }
+      };
+      restore('token',         'chunirec_token');
+      restore('region',        'chunirec_region');
+      restore('filter-BAS',    'chunirec_filter_BAS',  true);
+      restore('filter-ADV',    'chunirec_filter_ADV',  true);
+      restore('filter-EXP',    'chunirec_filter_EXP',  true);
+      restore('filter-MAS',    'chunirec_filter_MAS',  true);
+      restore('filter-ULT',    'chunirec_filter_ULT',  true);
+      restore('pick-aj',       'chunirec_pick_aj',     true);
+      restore('pick-ajc',      'chunirec_pick_ajc',    true);
+    });
+
+    function parseLevelValue(lv) {
+      return lv.endsWith('+')
+        ? parseInt(lv, 10) + 0.5
+        : parseInt(lv, 10);
+    }
+
     function formatLevel(lv) {
-      const num = parseFloat(lv);
-      return isNaN(num) ? lv : (Number.isInteger(num) ? `${num}` : `${Math.floor(num)}+`);
+      const n = parseFloat(lv);
+      if (isNaN(n)) return lv;
+      return Number.isInteger(n) ? `${n}` : `${Math.floor(n)}+`;
+    }
+
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
     }
 
     async function runPicker() {
       const token = document.getElementById('token').value.trim();
+      if (!/^[a-zA-Z0-9_\-]+$/.test(token)) {
+        alert('不正な形式のトークンです。');
+        return;
+      }
       const region = document.getElementById('region').value;
-      const count = parseInt(document.getElementById('count').value);
+      const count = document.getElementById('count').value;
+      const levelMin = parseLevelValue(document.getElementById('level-min').value);
+      const levelMax = parseLevelValue(document.getElementById('level-max').value);
+      const diffs = ['BAS','ADV','EXP','MAS','ULT'].filter(d=>document.getElementById('filter-'+d).checked);
       const pickAJ = document.getElementById('pick-aj').checked;
       const pickAJC = document.getElementById('pick-ajc').checked;
       const output = document.getElementById('output');
-      output.value = "読み込み中...";
 
       if (!token) {
         alert('トークンを入力してください');
         return;
       }
 
-      // 入力値を localStorage に保存
-      localStorage.setItem('chunirec_token', token);
-      localStorage.setItem('chunirec_region', region);
-      localStorage.setItem('chunirec_count', count);
-      localStorage.setItem('chunirec_pick_aj', pickAJ);
-      localStorage.setItem('chunirec_pick_ajc', pickAJC);
+      if (!diffs.length) { alert('少なくとも1つの難易度を選択してください'); return; }
+
+      localStorage.setItem('chunirec_token',      token);
+      localStorage.setItem('chunirec_region',     region);
+      localStorage.setItem('chunirec_count',      count);
+      localStorage.setItem('chunirec_level_min',  levelMin);
+      localStorage.setItem('chunirec_level_max',  levelMax);
+      ['BAS', 'ADV', 'EXP', 'MAS', 'ULT'].forEach(d => {
+        const checked = document.getElementById('filter-' + d).checked;
+        localStorage.setItem('chunirec_filter_' + d, checked);
+      });
+      localStorage.setItem('chunirec_pick_aj',    pickAJ);
+      localStorage.setItem('chunirec_pick_ajc',   pickAJC);
+
+      output.style.display = 'block';
+      output.innerHTML = '<div class="output-header">読み込み中...</div>';
 
       try {
         const res = await fetch(`https://api.chunirec.net/2.0/records/showall.json?region=${region}&token=${token}`);
         if (!res.ok) throw new Error(`APIエラー: ${res.status}`);
         const { records } = await res.json();
 
-        const pick = (filterFn) => {
-          const list = records.filter(r => (r.diff === 'MAS' || r.diff === 'ULT') && filterFn(r));
-          for (let i = list.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [list[i], list[j]] = [list[j], list[i]];
+        const base = records.filter(r =>
+          diffs.includes(r.diff) &&
+          parseFloat(r.level) >= levelMin &&
+          parseFloat(r.level) <= levelMax
+        );
+
+        const sections = [];
+        const doDefault = !pickAJ && !pickAJC;
+        if (doDefault || pickAJ) {
+          let list = base.filter(r => doDefault ? true : !r.is_alljustice);
+          shuffle(list);
+          const picks = list.slice(0, count)
+            .sort((a,b)=> {
+              const la=parseFloat(a.level), lb=parseFloat(b.level);
+              return la!==lb ? la-lb : a.score-b.score;
+            });
+          sections.push({ title: doDefault ? `▼ ランダム課題曲` : `▼ 未AJ譜面`, items: picks });
+        }
+        if (!doDefault && pickAJC) {
+          sections.push({ spacer: true });
+          let list = base.filter(r => r.score < 1010000);
+          shuffle(list);
+          const picks = list.slice(0, count)
+            .sort((a,b)=> {
+              const la=parseFloat(a.level), lb=parseFloat(b.level);
+              return la!==lb ? la-lb : a.score-b.score;
+            });
+          sections.push({ title: `▼ 未AJC譜面`, items: picks });
+        }
+
+        let html = '';
+        let totalHits = 0;
+        sections.forEach(sec => {
+          if (sec.spacer) {
+            html += '<div style="height:0.5em;"></div>';
+          } else {
+            totalHits += sec.items.length;
+            html += `<div class="output-header">${sec.title}</div>`;
+            sec.items.forEach(r => {
+              const lvl = formatLevel(r.level);
+              html += `<div class="song-line">` +
+                        `<span class="song-title">【${r.genre||'?'}】${r.title}</span>` +
+                        `<span class="song-diff">${r.diff}</span>` +
+                        `<span class="song-level">${lvl}</span>` +
+                        `<span class="song-score">${r.score}</span>` +
+                      `</div>`;
+            });
           }
-          return list.slice(0, count);
-        };
+        });
 
-        let msg = '';
-        if (pickAJ) {
-          const list = pick(r => !r.is_alljustice);
-          msg += `▼ AJ未達成ランダム${count}曲\n` + list.map(r => `【${r.genre || '?'}】${r.title} [${r.diff}] (Lv${formatLevel(r.level)}, ${r.score})`).join('\n') + '\n\n';
-        }
-        if (pickAJC) {
-          const list = pick(r => r.score < 1010000);
-          msg += `▼ AJC未達成ランダム${count}曲\n` + list.map(r => `【${r.genre || '?'}】${r.title} [${r.diff}] (Lv${formatLevel(r.level)}, ${r.score})`).join('\n') + '\n';
-        }
-
-        output.value = msg || '条件に一致する譜面が見つかりませんでした';
-      } catch (e) {
-        output.value = `エラー: ${e.message}`;
+        output.innerHTML = totalHits > 0
+          ? html
+          : '<div class="output-header">条件に一致する譜面が見つかりませんでした</div>';
+      }
+      catch (e) {
+        output.innerHTML = `<div class="output-header" style="color:red;">エラー: ${e.message}</div>`;
       }
     }
-
-    // ページ読み込み時に設定値を自動復元
-    window.addEventListener('DOMContentLoaded', () => {
-      const savedToken = localStorage.getItem('chunirec_token');
-      const savedRegion = localStorage.getItem('chunirec_region');
-      const savedCount = localStorage.getItem('chunirec_count');
-      const savedPickAJ = localStorage.getItem('chunirec_pick_aj');
-      const savedPickAJC = localStorage.getItem('chunirec_pick_ajc');
-      if (savedToken) document.getElementById('token').value = savedToken;
-      if (savedRegion) document.getElementById('region').value = savedRegion;
-      if (savedCount) document.getElementById('count').value = savedCount;
-      if (savedPickAJ !== null) document.getElementById('pick-aj').checked = savedPickAJ === 'true';
-      if (savedPickAJC !== null) document.getElementById('pick-ajc').checked = savedPickAJC === 'true';
-    });
   </script>
 </body>
 </html>
