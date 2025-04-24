@@ -15,7 +15,11 @@
 <body>
   <div class="container">
     <h1>CHUNITHM Random Picker</h1>
-    <label>Token:<br><input type="text" id="token" placeholder="chunirecのアクセストークン"></label><br>
+    <label>Token:<br><input type="text" id="token" placeholder="CHUNIRECのトークン"></label><br>
+    <div class="note">
+      トークンは <a href="https://developer.chunirec.net/manage/#urec-api" target="_blank">こちら</a> からログインして発行できます。
+    </div>
+    <br>
     <label>Region:
       <select id="region">
         <option value="jp2">jp2</option>
@@ -23,8 +27,8 @@
       </select>
     </label><br>
     <label>曲数:<br><input type="number" id="count" value="5" min="1"></label><br>
-    <label><input type="checkbox" id="pick-aj" checked> AJ未達成から選ぶ</label><br>
-    <label><input type="checkbox" id="pick-ajc" checked> AJC未達成から選ぶ</label><br>
+    <label><input type="checkbox" id="pick-aj" checked> 未AJから選ぶ</label><br>
+    <label><input type="checkbox" id="pick-ajc" checked> 未AJCから選ぶ</label><br>
     <button onclick="runPicker()">🎲 ランダムピック</button>
     <textarea id="output" readonly placeholder="ここに結果が表示されます"></textarea>
   </div>
@@ -48,6 +52,9 @@
         alert('トークンを入力してください');
         return;
       }
+
+      // トークンを localStorage に保存
+      localStorage.setItem('chunirec_access_token', token);
 
       try {
         const res = await fetch(`https://api.chunirec.net/2.0/records/showall.json?region=${region}&token=${token}`);
@@ -78,6 +85,14 @@
         output.value = `エラー: ${e.message}`;
       }
     }
+
+    // ページ読み込み時にトークンを自動入力
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedToken = localStorage.getItem('chunirec_access_token');
+      if (savedToken) {
+      document.getElementById('token').value = savedToken;
+      }
+    });
   </script>
 </body>
 </html>
