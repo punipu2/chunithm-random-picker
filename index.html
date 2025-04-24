@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CHUNITHM Random Picker</title>
+  <style>
+    body { font-family: sans-serif; padding: 1.5em; background: #f2f2f2; }
+    h1 { font-size: 1.5em; }
+    input, select, button { padding: 0.5em; margin: 0.5em 0; font-size: 1em; }
+    textarea { width: 100%; height: 300px; margin-top: 1em; white-space: pre; font-family: monospace; }
+    .container { background: white; padding: 1.5em; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); max-width: 600px; margin: auto; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>CHUNITHM Random Picker</h1>
+    <label>Token:<br><input type="text" id="token" placeholder="chunirecのアクセストークン"></label><br>
+    <label>Region:
+      <select id="region">
+        <option value="jp2">jp2</option>
+        <option value="jp">jp</option>
+      </select>
+    </label><br>
+    <label>曲数:<br><input type="number" id="count" value="5" min="1"></label><br>
+    <label><input type="checkbox" id="pick-aj" checked> AJ未達成から選ぶ</label><br>
+    <label><input type="checkbox" id="pick-ajc" checked> AJC未達成から選ぶ</label><br>
+    <button onclick="runPicker()">🎲 ランダムピック</button>
+    <textarea id="output" readonly placeholder="ここに結果が表示されます"></textarea>
+  </div>
+
+  <script>
+    function formatLevel(lv) {
+      const num = parseFloat(lv);
+      return isNaN(num) ? lv : (Number.isInteger(num) ? `${num}` : `${Math.floor(num)}+`);
+    }
+
+    async function runPicker() {
+      const token = document.getElementById('token').value.trim();
+      const region = document.getElementById('region').value;
+      const count = parseInt(document.getElementById('count').value);
+      const pickAJ = document.getElementById('pick-aj').checked;
+      const pickAJC = document.getElementById('pick-ajc').checked;
+      const output = document.getElementById('output');
+      output.value = "読み込み中...";
+
+      if (!token) {
+        alert('トークンを入力してください');
+        return;
+      }
+
+      try {
+        const res = await fetch(`https://api.chunirec.net/2.0/records/showall.json?region=${region}&token=${token}`);
+        if (!res.ok) throw new Error(`APIエラー: ${res.status}`);
+        const { records } = await res.json();
+
+        const pick = (filterFn) => {
+          const list = records.filter(r => (r.diff === 'MAS' || r.diff === 'ULT') && filterFn(r));
+          for (let i = list.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [list[i], list[j]] = [list[j], list[i]];
+          }
+          return list.slice(0, count);
+        };
+
+        let msg = '';
+        if (pickAJ) {
+          const list = pick(r => !r.is_alljustice);
+          msg += `▼ AJ未達成ランダム${count}曲\n` + list.map(r => `【${r.genre || '?'}】${r.title} [${r.diff}] (Lv${formatLevel(r.level)}, ${r.score})`).join('\n') + '\n\n';
+        }
+        if (pickAJC) {
+          const list = pick(r => r.score < 1010000);
+          msg += `▼ AJC未達成ランダム${count}曲\n` + list.map(r => `【${r.genre || '?'}】${r.title} [${r.diff}] (Lv${formatLevel(r.level)}, ${r.score})`).join('\n') + '\n';
+        }
+
+        output.value = msg || '条件に一致する譜面が見つかりませんでした';
+      } catch (e) {
+        output.value = `エラー: ${e.message}`;
+      }
+    }
+  </script>
+</body>
+</html>
