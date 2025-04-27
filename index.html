@@ -99,7 +99,7 @@
     </div>
 
     <div class="results" id="output"></div>
-    <button id="download-btn" style="margin-left:0.5em;">📷 結果を画像保存</button>
+    <button id="download-btn">📷 結果を画像表示</button>
   </div>
 
   <script>
@@ -183,15 +183,24 @@
     document.getElementById('download-btn').addEventListener('click', async () => {
       const output = document.getElementById('output');
       if (output.style.display === 'none' || !output.innerHTML.trim()) {
-        alert('まず「ランダムピック実行」で結果を表示してください');
-        return;
+        alert('まず「ランダムピック実行」で結果を表示してください'); return;
       }
       try {
         const canvas = await html2canvas(output);
-        const link = document.createElement('a');
-        link.href = canvas.toDataURL('image/png');
-        link.download = `random_picker_${Date.now()}.png`;
-        link.click();
+        const dataUrl = canvas.toDataURL('image/png');
+        const newWin = window.open('', '_blank');
+        if (newWin) {
+          newWin.document.title = 'CHUNITHM 課題曲結果';
+          const img = newWin.document.createElement('img');
+          img.src = dataUrl;
+          img.style.width = '100%';
+          img.style.height = 'auto';
+          img.alt = 'CHUNITHM 課題曲結果';
+          newWin.document.body.style.margin = '0';
+          newWin.document.body.appendChild(img);
+        } else {
+          alert('新しいタブを開けませんでした。ポップアップを許可してください');
+        }
       } catch (e) {
         console.error(e);
         alert('画像化に失敗しました');
@@ -220,7 +229,10 @@
         return;
       }
 
-      if (!diffs.length) { alert('少なくとも1つの難易度を選択してください'); return; }
+      if (!diffs.length) {
+        alert('少なくとも1つの難易度を選択してください');
+        return;
+      }
 
       localStorage.setItem('chunirec_token',      token);
       localStorage.setItem('chunirec_region',     region);
