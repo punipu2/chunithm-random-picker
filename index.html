@@ -21,6 +21,11 @@
     .song-title { font-weight: bold; overflow: hidden; text-overflow: ellipsis; }
     .song-diff, .song-score { text-align: right; }
     .song-level { text-align: left; }
+    @media (max-width: 600px) {
+      .song-line { display: flex; flex-wrap: wrap; justify-content: flex-end; padding: 0.5em 0;}
+      .song-title { flex: 1 1 100%; margin-bottom: 0.2em; font-size: 1em; }
+      .song-diff, .song-level, .song-score { flex: 0 0 auto; font-size: 0.9em; margin-left: 0.5em; white-space: nowrap; }
+    }
   </style>
 </head>
 <body>
@@ -242,9 +247,17 @@
             html += `<div class="output-header">${sec.title}</div>`;
             sec.items.forEach(r => {
               const lvl = formatLevel(r.level);
+              const diffColors = {
+                BAS: "#5d5",
+                ADV: "#fa0",
+                EXP: "#f11",
+                MAS: "#a0a",
+                ULT: "#862333"
+              };
+              const diffColor = diffColors[r.diff] || "#000";
               html += `<div class="song-line">` +
                         `<span class="song-title">【${r.genre||'?'}】${r.title}</span>` +
-                        `<span class="song-diff">${r.diff}</span>` +
+                        `<span class="song-diff" style="color:${diffColor};">${r.diff}</span>` +
                         `<span class="song-level">${lvl}</span>` +
                         `<span class="song-score">${r.score}</span>` +
                       `</div>`;
