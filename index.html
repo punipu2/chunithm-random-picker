@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CHUNITHM 課題曲メーカー</title>
   <style>
-    body { font-family: "Helvetica Neue", sans-serif; padding: 1.5em; background: #f2f2f2; }
+    body { font-family: "Helvetica Neue", sans-serif; padding: 1em; background: #f2f2f2; }
     h1 { font-size: 1.8em; margin-bottom: 0.5em; }
     label { display: block; margin: 0.2em 0 0.2em; }
     input, select, button { padding: 0.6em; font-size: 1em; border: 1px solid #ccc; border-radius: 5px; }
@@ -13,7 +13,7 @@
     button { background-color: #3d3d3d; color: white; cursor: pointer; margin-top: 0.8em; }
     button:hover { background-color: #555555; }
     .version { font-size: 0.5em; margin-left: 0.3em; }
-    .container { background: white; padding: 2em; border-radius: 12px; box-shadow: 0 0 15px rgba(0,0,0,0.1); max-width: 650px; margin: auto; }
+    .container { background: white; padding: 1.5em; border-radius: 12px; box-shadow: 0 0 15px rgba(0,0,0,0.1); max-width: 500px; margin: auto; }
     .section { margin-bottom: 1.5em; }
     .note { font-size: 0.9em; color: #555; margin: 0.5em; }
     .results { margin-top: 1.5em; background: #f0f0f0; padding: 1em; border-radius: 10px; font-family: monospace; color: #333; display: none; }
@@ -29,11 +29,13 @@
       .song-level { grid-column: 3; text-align: left; }
       .song-score { grid-column: 4; text-align: right; }
     }
+    #download-btn { display: none; }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
   <div class="container">
-    <h1>CHUNITHM 課題曲メーカー <span class="version">v1.0.6</span></h1>
+    <h1>CHUNITHM 課題曲メーカー <span class="version">v1.0.7</span></h1>
 
     <div class="section">
       <div class="note">
@@ -97,6 +99,7 @@
     </div>
 
     <div class="results" id="output"></div>
+    <button id="download-btn" style="margin-left:0.5em;">📷 結果を画像保存</button>
   </div>
 
   <script>
@@ -177,6 +180,24 @@
       }
     }
 
+    document.getElementById('download-btn').addEventListener('click', async () => {
+      const output = document.getElementById('output');
+      if (output.style.display === 'none' || !output.innerHTML.trim()) {
+        alert('まず「ランダムピック実行」で結果を表示してください');
+        return;
+      }
+      try {
+        const canvas = await html2canvas(output);
+        const link = document.createElement('a');
+        link.href = canvas.toDataURL('image/png');
+        link.download = `random_picker_${Date.now()}.png`;
+        link.click();
+      } catch (e) {
+        console.error(e);
+        alert('画像化に失敗しました');
+      }
+    });
+
     async function runPicker() {
       const token = document.getElementById('token').value.trim();
       if (!/^[a-zA-Z0-9_\-]+$/.test(token)) {
@@ -192,6 +213,7 @@
       const pickAJC = document.getElementById('pick-ajc').checked;
       // const pickUncleared = document.getElementById('pick-uncleared').checked;
       const output = document.getElementById('output');
+      const dlBtn = document.getElementById('download-btn');
 
       if (!token) {
         alert('トークンを入力してください');
@@ -213,6 +235,7 @@
       localStorage.setItem('chunirec_pick_ajc',   pickAJC);
       // localStorage.setItem('chunirec_pick_uncleared', pickUncleared);
 
+      dlBtn.style.display = 'none';
       output.style.display = 'block';
       output.innerHTML = '<div class="output-header">読み込み中...</div>';
 
@@ -319,6 +342,7 @@
         output.innerHTML = totalHits > 0
           ? html
           : '<div class="output-header">条件に一致する譜面が見つかりませんでした</div>';
+        dlBtn.style.display = 'inline-block';
       }
       catch (e) {
         output.innerHTML = `<div class="output-header" style="color:red;">エラー: ${e.message}</div>`;
