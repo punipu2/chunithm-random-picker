@@ -24,7 +24,7 @@
     .song-level { text-align: left; }
     @media (max-width: 600px) {
       .song-line { display: grid; grid-template-columns: 1fr 3ch 3ch 7ch; gap: 0.5em; padding: 0.5em 0; align-items: center; white-space: nowrap; }
-      .song-title { grid-column: 1 / -1; margin-bottom: 0.2em; font-size: 1em; }
+      .song-title { grid-column: 1 / -1; font-size: 1em; }
       .song-diff { grid-column: 2; text-align: right; }
       .song-level { grid-column: 3; text-align: left; }
       .song-score { grid-column: 4; text-align: right; }
@@ -35,7 +35,7 @@
 </head>
 <body>
   <div class="container">
-    <h1>CHUNITHM 課題曲メーカー <span class="version">v1.0.7</span></h1>
+    <h1>CHUNITHM 課題曲メーカー <span class="version">v1.0.8</span></h1>
 
     <div class="section">
       <div class="note">
@@ -182,10 +182,19 @@
 
     document.getElementById('download-btn').addEventListener('click', async () => {
       const output = document.getElementById('output');
-      if (output.style.display === 'none' || !output.innerHTML.trim()) {
-        alert('まず「ランダムピック実行」で結果を表示してください'); return;
-      }
+      if (output.style.display === 'none' || !output.innerHTML.trim()) { alert('まず「ランダムピック実行」で結果を表示してください'); return; }
       try {
+        const songLines = output.querySelectorAll('.song-line');
+        songLines.forEach(el => {
+          el.style.display = 'grid';
+          el.style.gridTemplateColumns = '1fr 3ch 3ch 7ch';
+        });
+        ['song-title','song-diff','song-level','song-score'].forEach(cls => {
+          output.querySelectorAll(`.${cls}`).forEach(el => {
+            el.style.gridColumn = 'auto';
+          });
+        });
+
         const canvas = await html2canvas(output);
         const dataUrl = canvas.toDataURL('image/png');
         const newWin = window.open('', '_blank');
