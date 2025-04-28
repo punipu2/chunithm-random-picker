@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CHUNITHM 課題曲メーカー</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP&display=swap" rel="stylesheet">
   <style>
     body { font-family: "Helvetica Neue", sans-serif; padding: 1em; background: #f2f2f2; }
     h1 { font-size: 1.8em; margin-bottom: 0.5em; }
@@ -16,19 +17,19 @@
     .container { background: white; padding: 1.5em; border-radius: 12px; box-shadow: 0 0 15px rgba(0,0,0,0.1); max-width: 500px; margin: auto; }
     .section { margin-bottom: 1.5em; }
     .note { font-size: 0.9em; color: #555; margin: 0.5em; }
-    .results { background: #f0f0f0; padding: 1em; border-radius: 10px; font-family: monospace; color: #333; display: none; }
-    .output-header { font-weight: bold; font-size: 1.1em; margin-bottom: 0.2em; color: #006f8f; }
+    .results { background: #f0f0f0; padding: 1em; border-radius: 10px; font-family: 'Noto Sans JP', sans-serif !important; color: #333; display: none; }
+    .output-header { font-weight: bold; font-size: 0.95em; margin-bottom: 0.2em; color: #006f8f; }
     .spacer { height: 1.5em; display: none; }
-    .song-line { display: grid; grid-template-columns: 1fr 3ch 3ch 7ch; gap: 0.5em; padding: 0.3em 0; align-items: center; white-space: nowrap; overflow: hidden; }
-    .song-title { font-weight: bold; overflow: hidden; text-overflow: ellipsis; }
-    .song-diff, .song-score { text-align: right; }
-    .song-level { text-align: left; }
+    .song-line { font-size: 0.9em; display: grid; grid-template-columns: 1fr 4ch 3ch 7ch; gap: 0.5em; padding: 0.2em 0; align-items: center; white-space: nowrap; overflow: hidden; }
+    .song-title { font-size: 0.9em; font-weight: bold; overflow: hidden; text-overflow: ellipsis; }
+    .song-diff, .song-score { font-size: 0.9em; text-align: right; }
+    .song-level { font-size: 0.9em; text-align: left; }
     @media (max-width: 600px) {
-      .song-line { display: grid; grid-template-columns: 1fr 3ch 3ch 7ch; gap: 0.5em; padding: 0.5em 0; align-items: center; white-space: nowrap; }
-      .song-title { grid-column: 1 / -1; font-size: 1em; }
-      .song-diff { grid-column: 2; text-align: right; }
-      .song-level { grid-column: 3; text-align: left; }
-      .song-score { grid-column: 4; text-align: right; }
+      .song-line { display: grid; grid-template-columns: 1fr 4ch 3ch 7ch; gap: 0.5em; padding: 0.2em 0; align-items: center; white-space: nowrap; }
+      .song-title { font-size: 0.9em; grid-column: 1 / -1; }
+      .song-diff { font-size: 0.9em; grid-column: 2; text-align: right; }
+      .song-level { font-size: 0.9em; grid-column: 3; text-align: left; }
+      .song-score { font-size: 0.9em; grid-column: 4; text-align: right; }
     }
     #download-btn { display: none; }
   </style>
@@ -191,13 +192,18 @@
       }
 
       const clone = output.cloneNode(true);
-      clone.style.fontFamily = 'monospace';
-
       const wrapper = document.createElement('div');
       wrapper.style.position = 'absolute';
       wrapper.style.top = '-10000px';
       wrapper.style.left = '-10000px';
       wrapper.style.width = '550px';
+      const style = document.createElement('style');
+      style.textContent = `
+        .song-diff, .song-level, .song-score {
+          font-family: 'Noto Sans JP', sans-serif !important; font-size: 0.9em;
+        }
+      `;
+      wrapper.appendChild(style);
       wrapper.appendChild(clone);
       document.body.appendChild(wrapper);
 
@@ -349,7 +355,7 @@
         let totalHits = 0;
         sections.forEach(sec => {
           if (sec.spacer) {
-            html += '<div style="height:0.5em;"></div>';
+            html += '<div style="height:0.2em;"></div>';
           } else {
             totalHits += sec.items.length;
             html += `<div class="output-header">${sec.title}</div>`;
@@ -375,8 +381,8 @@
 
         output.innerHTML = totalHits > 0
           ? html
-          : '<div class="output-header">条件に一致する譜面が見つかりませんでした</div>';
-        dlBtn.style.display = 'inline-block';
+          : '<div class="output-header">条件に一致する譜面が見つかりませんでした</div>'; 
+        dlBtn.style.display = totalHits > 0 ? 'inline-block' : 'none';
       }
       catch (e) {
         output.innerHTML = `<div class="output-header" style="color:red;">エラー: ${e.message}</div>`;
