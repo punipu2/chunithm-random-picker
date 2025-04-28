@@ -26,7 +26,6 @@
     .song-diff, .song-score { font-size: 0.9em; text-align: right; }
     .song-level { font-size: 0.9em; text-align: left; }
     @media (max-width: 600px) {
-      .landscape-message { display: block; }
       .song-line { display: grid; grid-template-columns: 1fr 4ch 3ch 7ch; gap: 0.5em; padding: 0.2em 0; align-items: center; white-space: nowrap; }
       .song-title { font-size: 0.9em; grid-column: 1 / -1; }
       .song-diff { font-size: 0.9em; grid-column: 2; text-align: right; }
@@ -388,6 +387,9 @@
           ? html
           : '<div class="output-header">条件に一致する譜面が見つかりませんでした</div>'; 
         dlBtn.style.display = totalHits > 0 ? 'inline-block' : 'none';
+        if (window.innerWidth <= 600) {
+          document.querySelector('.landscape-message').style.display = 'block';
+        }
       }
       catch (e) {
         output.innerHTML = `<div class="output-header" style="color:red;">エラー: ${e.message}</div>`;
