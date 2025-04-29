@@ -38,7 +38,7 @@
 </head>
 <body>
   <div class="container">
-    <h1>CHUNITHM 課題曲メーカー <span class="version">v1.1.2</span></h1>
+    <h1>CHUNITHM 課題曲メーカー <span class="version">v1.1.3</span></h1>
 
     <div class="section">
       <div class="note">
@@ -74,25 +74,32 @@
       <select id="count"></select>
     </div>
 
-    <div class="section">
+    <div class="section" id="level-section">
       <label>レベル:</label>
-      <div id="level-container" style="margin-top:0.5em;"></div>
+      <label style="display:inline-block; margin-right:0.5em;"><label><input type="checkbox" id="use-rating"> 譜面定数で指定</label>
+      <div id="level-dropdowns" style="margin-top:0.5em;">
+        <div id="level-container" style="display:inline-block;"></div>
+      </div>
+      <div id="rating-inputs" style="display:none; margin-top:0.5em;">
+        <input type="number" id="rating-min" step="0.1" min="1.0" max="15.9" style="width:3em;">
+        ～
+        <input type="number" id="rating-max" step="0.1" min="1.0" max="15.9" style="width:3em;">
+      </div>
     </div>
 
     <div class="section">
       <label>難易度:</label>
-      <label style="display:inline-block;margin-right:0.5em;"><input type="checkbox" id="filter-BAS"> BAS</label>
-      <label style="display:inline-block;margin-right:0.5em;"><input type="checkbox" id="filter-ADV"> ADV</label>
-      <label style="display:inline-block;margin-right:0.5em;"><input type="checkbox" id="filter-EXP"> EXP</label>
-      <label style="display:inline-block;margin-right:0.5em;"><input type="checkbox" id="filter-MAS" checked> MAS</label>
-      <label style="display:inline-block;margin-right:0.5em;"><input type="checkbox" id="filter-ULT" checked> ULT</label>
+      <label style="display:inline-block; margin-right:0.5em;"><input type="checkbox" id="filter-BAS"> BAS</label>
+      <label style="display:inline-block; margin-right:0.5em;"><input type="checkbox" id="filter-ADV"> ADV</label>
+      <label style="display:inline-block; margin-right:0.5em;"><input type="checkbox" id="filter-EXP"> EXP</label>
+      <label style="display:inline-block; margin-right:0.5em;"><input type="checkbox" id="filter-MAS" checked> MAS</label>
+      <label style="display:inline-block; margin-right:0.5em;"><input type="checkbox" id="filter-ULT" checked> ULT</label>
     </div>
 
     <div class="section">
       <label>オプション:</label>
-      <label style="display:inline-block;margin-right:0.5em;"><input type="checkbox" id="pick-aj"> 未AJ譜面のみ</label>
-      <label style="display:inline-block;margin-right:0.5em;"><input type="checkbox" id="pick-ajc"> 未AJC譜面のみ</label>
-      <!-- <label style="display:inline-block;margin-right:0.5em;"><input type="checkbox" id="pick-uncleared"> 未クリア譜面のみ</label> -->
+      <label style="display:inline-block; margin-right:0.5em;"><input type="checkbox" id="pick-aj"> 未AJ譜面のみ</label>
+      <label style="display:inline-block; margin-right:0.5em;"><input type="checkbox" id="pick-ajc"> 未AJC譜面のみ</label>
     </div>
 
     <button onclick="runPicker()">🎲 ランダムピック実行</button>
@@ -142,13 +149,92 @@
         if (LEVELS.indexOf(minSel.value) > LEVELS.indexOf(maxSel.value)) {
           maxSel.value = minSel.value;
         }
+        localStorage.setItem('chunirec_level_min', parseLevelValue(minSel.value));
+        localStorage.setItem('chunirec_level_max', parseLevelValue(maxSel.value));
       });
       maxSel.addEventListener('change', () => {
         if (LEVELS.indexOf(maxSel.value) < LEVELS.indexOf(minSel.value)) {
           minSel.value = maxSel.value;
+          localStorage.setItem('chunirec_level_min', parseLevelValue(minSel.value));
+          localStorage.setItem('chunirec_level_max', parseLevelValue(maxSel.value));
         }
       });
       lc.append(minSel, document.createTextNode(' ～ '), maxSel);
+
+      const chkUseRating = document.getElementById('use-rating');
+      const ratingInputs = document.getElementById('rating-inputs');
+      const inpRatingMin = document.getElementById('rating-min');
+      const inpRatingMax = document.getElementById('rating-max');
+      const useRating = localStorage.getItem('chunirec_use_rating') === 'true';
+
+      const minRating = 1.0;
+      const maxRating = 15.9;
+      const storedRatingMin = localStorage.getItem('chunirec_rating_min') || minRating;
+      const storedRatingMax = localStorage.getItem('chunirec_rating_max') || maxRating;
+      if (storedRatingMin !== null) inpRatingMin.value = parseFloat(storedRatingMin).toFixed(1);
+      if (storedRatingMax !== null) inpRatingMax.value = parseFloat(storedRatingMax).toFixed(1);
+
+      chkUseRating.checked = useRating;
+      toggleRatingMode(useRating);
+
+      chkUseRating.addEventListener('change', () => {
+        const on = chkUseRating.checked;
+        localStorage.setItem('chunirec_use_rating', on);
+        if (on) {
+          const lvMin = parseLevelValue(minSel.value);
+          const lvMax = parseLevelValue(maxSel.value);
+          inpRatingMin.value = lvMin % 1 === 0 ? lvMin.toFixed(1) : (Math.floor(lvMin) + 0.5).toFixed(1);
+          inpRatingMax.value = lvMax % 1 === 0 ? (Math.floor(lvMax) + 0.4).toFixed(1) : (Math.floor(lvMax) + 0.9).toFixed(1);
+          localStorage.setItem('chunirec_rating_min', inpRatingMin.value);
+          localStorage.setItem('chunirec_rating_max', inpRatingMax.value);
+        } else {
+          const toDropdown = v => {
+            const n = parseFloat(v);
+            const i = Math.floor(n);
+            return (n - i < 0.5) ? `${i}` : `${i}+`;
+          };
+          const newMinLv = toDropdown(inpRatingMin.value);
+          const newMaxLv = toDropdown(inpRatingMax.value);
+          minSel.value = newMinLv;
+          maxSel.value = newMaxLv;
+          localStorage.setItem('chunirec_level_min', parseLevelValue(newMinLv));
+          localStorage.setItem('chunirec_level_max', parseLevelValue(newMaxLv));
+        }
+        toggleRatingMode(on);
+      });
+
+      function toggleRatingMode(on) {
+        document.getElementById('level-dropdowns').style.display = on ? 'none' : 'inline-block';
+        ratingInputs.style.display = on ? 'inline-block' : 'none';
+      }
+
+      inpRatingMin.addEventListener('change', () => {
+        if (parseFloat(inpRatingMin.value) >= parseFloat(inpRatingMax.value)) {
+          inpRatingMax.value = (parseFloat(inpRatingMin.value)).toFixed(1);
+        }
+        if (parseFloat(inpRatingMin.value) < minRating) {
+          inpRatingMin.value = (parseFloat(minRating)).toFixed(1);
+        }
+        if (parseFloat(inpRatingMax.value) > maxRating) {
+          inpRatingMax.value = (parseFloat(maxRating)).toFixed(1);
+        }
+        localStorage.setItem('chunirec_rating_min', inpRatingMin.value);
+        localStorage.setItem('chunirec_rating_max', inpRatingMax.value);
+      });
+      inpRatingMax.addEventListener('change', () => {
+        if (parseFloat(inpRatingMax.value) <= parseFloat(inpRatingMin.value)) {
+          inpRatingMin.value = (parseFloat(inpRatingMax.value)).toFixed(1);
+        }
+        if (parseFloat(inpRatingMin.value) < minRating) {
+          inpRatingMin.value = (parseFloat(minRating)).toFixed(1);
+        }
+        if (parseFloat(inpRatingMax.value) > maxRating) {
+          inpRatingMax.value = (parseFloat(maxRating)).toFixed(1);
+        }
+        localStorage.setItem('chunirec_rating_min', inpRatingMin.value);
+        localStorage.setItem('chunirec_rating_max', inpRatingMax.value);
+      });
+
       const restore = (id, key, isChecked=false) => {
         const v = localStorage.getItem(key);
         if (v !== null) {
@@ -166,7 +252,6 @@
       restore('filter-ULT',    'chunirec_filter_ULT',  true);
       restore('pick-aj',       'chunirec_pick_aj',     true);
       restore('pick-ajc',      'chunirec_pick_ajc',    true);
-      // restore('pick-uncleared', 'chunirec_pick_uncleared', true);
     });
 
     function parseLevelValue(lv) {
@@ -245,12 +330,16 @@
       }
       const region = document.getElementById('region').value;
       const count = document.getElementById('count').value;
-      const levelMin = parseLevelValue(document.getElementById('level-min').value);
-      const levelMax = parseLevelValue(document.getElementById('level-max').value);
+      const useRating = document.getElementById('use-rating').checked;
+      const levelMin = useRating
+        ? parseFloat(document.getElementById('rating-min').value)
+        : parseLevelValue(document.getElementById('level-min').value);
+      const levelMax = useRating
+        ? parseFloat(document.getElementById('rating-max').value)
+        : parseLevelValue(document.getElementById('level-max').value);
       const diffs = ['BAS','ADV','EXP','MAS','ULT'].filter(d=>document.getElementById('filter-'+d).checked);
       const pickAJ = document.getElementById('pick-aj').checked;
       const pickAJC = document.getElementById('pick-ajc').checked;
-      // const pickUncleared = document.getElementById('pick-uncleared').checked;
       const output = document.getElementById('output');
       const dlBtn = document.getElementById('download-btn');
       const spacer = document.getElementById('spacer');
@@ -268,6 +357,7 @@
       localStorage.setItem('chunirec_token',      token);
       localStorage.setItem('chunirec_region',     region);
       localStorage.setItem('chunirec_count',      count);
+      localStorage.setItem('chunirec_use_rating', useRating);
       localStorage.setItem('chunirec_level_min',  levelMin);
       localStorage.setItem('chunirec_level_max',  levelMax);
       ['BAS', 'ADV', 'EXP', 'MAS', 'ULT'].forEach(d => {
@@ -276,7 +366,6 @@
       });
       localStorage.setItem('chunirec_pick_aj',    pickAJ);
       localStorage.setItem('chunirec_pick_ajc',   pickAJC);
-      // localStorage.setItem('chunirec_pick_uncleared', pickUncleared);
 
       dlBtn.style.display = 'none';
       spacer.style.display = 'block';
@@ -311,48 +400,34 @@
 
         // console.log(records);
 
-        let base = records.filter(r =>
-          diffs.includes(r.diff) &&
-          parseFloat(r.level) >= levelMin &&
-          parseFloat(r.level) <= levelMax
-        );
-
-        // if (pickUncleared) {
-        //   base = base.filter(r => !r.is_clear);
-        // }
-        pickUncleared = false;
+        const base = records.filter(r => {
+          const val = useRating ? parseFloat(r.const) : parseFloat(r.level);
+          return diffs.includes(r.diff) && val >= levelMin && val <= levelMax;
+        });
 
         const sections = [];
-        const doDefault = !pickAJ && !pickAJC && !pickUncleared;
-        if (pickUncleared) {
-          shuffle(base);
-          const picks = base.slice(0, count).sort((a,b)=>{
-            const la=parseFloat(a.level), lb=parseFloat(b.level);
-            return la!==lb ? la-lb : a.score-b.score;
-          });
-          sections.push({ title: `▼ 未クリア譜面のみ`, items: picks });
-        } else {
-          if (doDefault || pickAJ) {
-            let list = base.filter(r => doDefault ? true : !r.is_alljustice);
-            shuffle(list);
-            const picks = list.slice(0, count)
-              .sort((a,b)=> {
-                const la=parseFloat(a.level), lb=parseFloat(b.level);
-                return la!==lb ? la-lb : a.score-b.score;
-              });
-            sections.push({ title: doDefault ? `▼ ランダム課題曲` : `▼ 未AJ譜面`, items: picks });
-          }
-          if (!doDefault && pickAJC) {
-            sections.push({ spacer: true });
-            let list = base.filter(r => r.score < 1010000);
-            shuffle(list);
-            const picks = list.slice(0, count)
-              .sort((a,b)=> {
-                const la=parseFloat(a.level), lb=parseFloat(b.level);
-                return la!==lb ? la-lb : a.score-b.score;
-              });
-            sections.push({ title: `▼ 未AJC譜面`, items: picks });
-          }
+        const doDefault = !pickAJ && !pickAJC;
+
+        if (doDefault || pickAJ) {
+          let list = base.filter(r => doDefault ? true : !r.is_alljustice);
+          shuffle(list);
+          const picks = list.slice(0, count)
+            .sort((a,b)=> {
+              const la=parseFloat(a.level), lb=parseFloat(b.level);
+              return la!==lb ? la-lb : a.score-b.score;
+            });
+          sections.push({ title: doDefault ? `▼ ランダム課題曲` : `▼ 未AJ譜面`, items: picks });
+        }
+        if (!doDefault && pickAJC) {
+          sections.push({ spacer: true });
+          let list = base.filter(r => r.score < 1010000);
+          shuffle(list);
+          const picks = list.slice(0, count)
+            .sort((a,b)=> {
+              const la=parseFloat(a.level), lb=parseFloat(b.level);
+              return la!==lb ? la-lb : a.score-b.score;
+            });
+          sections.push({ title: `▼ 未AJC譜面`, items: picks });
         }
 
         let html = '';
