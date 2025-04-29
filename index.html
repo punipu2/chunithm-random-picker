@@ -32,13 +32,16 @@
       .song-level { font-size: 0.9em; grid-column: 3; text-align: left; }
       .song-score { font-size: 0.9em; grid-column: 4; text-align: right; }
     }
+    #rating-inputs input[type="number"]::-webkit-inner-spin-button,
+    #rating-inputs input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    #rating-inputs input[type="number"] { -moz-appearance: textfield; }
     #download-btn { display: none; }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
   <div class="container">
-    <h1>CHUNITHM 課題曲メーカー <span class="version">v1.1.3</span></h1>
+    <h1>CHUNITHM 課題曲メーカー <span class="version">v1.1.4</span></h1>
 
     <div class="section">
       <div class="note">
@@ -105,7 +108,7 @@
     <button onclick="runPicker()">🎲 ランダムピック実行</button>
 
     <div class="note">
-        APIにはリクエスト制限があります。連続での実行はお控えください。
+        APIにはリクエスト制限があります。大量の連続実行はお控えください。
     </div>
 
     <div class="spacer" id="spacer"></div>
@@ -208,16 +211,25 @@
         ratingInputs.style.display = on ? 'inline-block' : 'none';
       }
 
+      [inpRatingMin, inpRatingMax].forEach(inp => {
+        const step = 0.1;
+        inp.addEventListener('keydown', e => {
+          if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+            e.preventDefault();
+            let v = parseFloat(inp.value) || minRating;
+            v += (e.key === 'ArrowUp' ? step : -step);
+            inp.value = v.toFixed(1);
+            inp.dispatchEvent(new Event('change'));
+          }
+        });
+      });
+
       inpRatingMin.addEventListener('change', () => {
         if (parseFloat(inpRatingMin.value) >= parseFloat(inpRatingMax.value)) {
           inpRatingMax.value = (parseFloat(inpRatingMin.value)).toFixed(1);
         }
-        if (parseFloat(inpRatingMin.value) < minRating) {
-          inpRatingMin.value = (parseFloat(minRating)).toFixed(1);
-        }
-        if (parseFloat(inpRatingMax.value) > maxRating) {
-          inpRatingMax.value = (parseFloat(maxRating)).toFixed(1);
-        }
+        inpRatingMin.value = Math.max(minRating, Math.min(maxRating, inpRatingMin.value)).toFixed(1);
+        inpRatingMax.value = Math.max(minRating, Math.min(maxRating, inpRatingMax.value)).toFixed(1);
         localStorage.setItem('chunirec_rating_min', inpRatingMin.value);
         localStorage.setItem('chunirec_rating_max', inpRatingMax.value);
       });
@@ -225,15 +237,19 @@
         if (parseFloat(inpRatingMax.value) <= parseFloat(inpRatingMin.value)) {
           inpRatingMin.value = (parseFloat(inpRatingMax.value)).toFixed(1);
         }
-        if (parseFloat(inpRatingMin.value) < minRating) {
-          inpRatingMin.value = (parseFloat(minRating)).toFixed(1);
-        }
-        if (parseFloat(inpRatingMax.value) > maxRating) {
-          inpRatingMax.value = (parseFloat(maxRating)).toFixed(1);
-        }
+        inpRatingMin.value = Math.max(minRating, Math.min(maxRating, inpRatingMin.value)).toFixed(1);
+        inpRatingMax.value = Math.max(minRating, Math.min(maxRating, inpRatingMax.value)).toFixed(1);
         localStorage.setItem('chunirec_rating_min', inpRatingMin.value);
         localStorage.setItem('chunirec_rating_max', inpRatingMax.value);
       });
+
+      const vMin = inpRatingMin.value.trim();
+      const vMax = inpRatingMax.value.trim();
+      const decimal1Re = /^\d+(\.\d)?$/;
+      if (useRating && (!decimal1Re.test(vMin) || !decimal1Re.test(vMax) )) {
+        alert(`譜面定数は「${minRating.toFixed(1)}～${maxRating.toFixed(1)}」の範囲で、小数第一位までの数字を入力してください。`);
+        return;
+      }
 
       const restore = (id, key, isChecked=false) => {
         const v = localStorage.getItem(key);
