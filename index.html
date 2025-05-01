@@ -34,14 +34,14 @@
     }
     #rating-inputs input[type="number"]::-webkit-inner-spin-button,
     #rating-inputs input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-    #rating-inputs input[type="number"] { -moz-appearance: textfield; }
+    #rating-inputs input[type="number"] { appearance: textfield; -moz-appearance: textfield; }
     #download-btn { display: none; }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
   <div class="container">
-    <h1>CHUNITHM 課題曲メーカー <span class="version">v1.1.4</span></h1>
+    <h1>CHUNITHM 課題曲メーカー <span class="version">v1.1.5</span></h1>
 
     <div class="section">
       <div class="note">
@@ -121,13 +121,36 @@
   </div>
 
   <script>
+    const minRating = 1.0;
+    const maxRating = 15.9;
     const LEVELS = [
       "1","2","3","4","5","6","7","7+","8","8+","9","9+",
       "10","10+","11","11+","12","12+","13","13+","14","14+","15","15+"
     ];
 
     window.addEventListener('DOMContentLoaded', () => {
-        const countSel = document.getElementById('count');
+      const elements = document.querySelectorAll('select, input');
+      elements.forEach(el => {
+        if (!el.id) return;
+        const snakeId = el.id.replace(/-/g, '_');
+        const key = `chunirec_${snakeId}`;
+        const saved = localStorage.getItem(key);
+        if (saved !== null) {
+          if (el.type === 'checkbox') {
+            el.checked = saved === 'true';
+          } else {
+            el.value = saved;
+          }
+        }
+        el.addEventListener('change', () => {
+          let val;
+          if (el.type === 'checkbox') val = el.checked;
+          else val = el.value.trim();
+          localStorage.setItem(key, val);
+        });
+      });
+
+      const countSel = document.getElementById('count');
       for (let i = 1; i <= 20; i++) {
         const o = document.createElement('option');
         o.value = o.textContent = i;
@@ -170,8 +193,6 @@
       const inpRatingMax = document.getElementById('rating-max');
       const useRating = localStorage.getItem('chunirec_use_rating') === 'true';
 
-      const minRating = 1.0;
-      const maxRating = 15.9;
       const storedRatingMin = localStorage.getItem('chunirec_rating_min') || minRating;
       const storedRatingMax = localStorage.getItem('chunirec_rating_max') || maxRating;
       if (storedRatingMin !== null) inpRatingMin.value = parseFloat(storedRatingMin).toFixed(1);
